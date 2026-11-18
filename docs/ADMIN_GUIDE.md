@@ -2,7 +2,7 @@
 
 **For the academy's staff/owner.** The admin dashboard is where you see bookings, cancel or refund them, block courts for maintenance, change prices and booking hours, and check payments.
 
-> **How to read the pictures:** each screenshot has **red numbered arrows**. Follow them in order — **1 → 2 → 3** — to see what to click or fill in.
+> **How to read the pictures:** the **red arrow** in each screenshot points to the next thing to click — the main action of that step. The text under each picture explains the rest.
 
 **Contents**
 1. [Sign in](#step-1--sign-in) · 2. [Overview](#step-2--the-overview-page) · 3. [Find a booking](#step-3--find-a-booking) · 4. [Open a booking](#step-4--open-a-booking) · 5. [Cancel / refund](#step-5--cancel-a-booking-with-or-without-refund) · 6. [Courts](#step-7--courts) · 7. [Booking hours](#step-8--change-the-online-booking-hours) · 8. [Block a court](#step-9--block-a-court-maintenance-events) · 9. [Prices](#step-11--change-prices-and-court-settings) · 10. [Payments](#step-12--payments) · 11. [Account](#step-13--change-your-password) · 12. [Sign out](#step-14--sign-out) · [Admin accounts](#managing-administrators) · [Daily checklist](#daily-checklist) · [Troubleshooting](#troubleshooting)
@@ -11,7 +11,7 @@
 
 ## Step 1 — Sign in
 
-Go to **`your-website/admin/login`**. Type your **email** (arrow 1) and **password** (arrow 2), then click **Sign in** (arrow 3).
+Go to **`your-website/admin/login`**. Type your **email** and **password**, then click **Sign in**.
 
 - There is no public sign-up. Only administrator accounts can sign in (see [Managing administrators](#managing-administrators)).
 - For safety, after too many wrong attempts (6 per account, 20 per network, in 15 minutes) sign-in is paused for a while.
@@ -24,10 +24,10 @@ Go to **`your-website/admin/login`**. Type your **email** (arrow 1) and **passwo
 
 After signing in you land on **Overview**. It is built from live data:
 
-1. **Number cards** (arrow 1): today's bookings, upcoming bookings, confirmed in the last 30 days, **pending payments** (slots currently held by customers who are paying), cancellations, and the amount collected (refunds excluded).
-2. **Today on court** (arrow 2): every court by hour. Green = confirmed, cream = payment hold, black = blocked/maintenance, white = free.
-3. **Latest bookings** (arrow 3): the newest bookings with their status.
-4. **Left menu** (arrow 4): Overview, Bookings, Courts, Payments, Account.
+1. **Number cards**: today's bookings, upcoming bookings, confirmed in the last 30 days, **pending payments** (slots currently held by customers who are paying), cancellations, and the amount collected (refunds excluded).
+2. **Today on court**: every court by hour. Green = confirmed, cream = payment hold, black = blocked/maintenance, white = free.
+3. **Latest bookings**: the newest bookings with their status.
+4. **Left menu**: Overview, Bookings, Courts, Payments, Account. The arrow points to **Bookings** — click it to go to the next step.
 
 ![Overview](admin-guide-images/a02-overview.png)
 
@@ -35,7 +35,7 @@ After signing in you land on **Overview**. It is built from live data:
 
 ## Step 3 — Find a booking
 
-Open **Bookings** in the menu. Search by reference, name, email or phone (arrow 1), narrow by status, sport or dates, and click **Filter** (arrow 2). Click **Clear** to reset. Click a booking's reference (arrow 3) to open it.
+Open **Bookings** in the menu. Search by reference, name, email or phone, narrow by status, sport or dates, and click **Filter**. Click **Clear** to reset. Click a booking's reference to open it.
 
 ![Bookings list](admin-guide-images/a03-bookings.png)
 
@@ -45,9 +45,9 @@ Open **Bookings** in the menu. Search by reference, name, email or phone (arrow 
 
 The booking page shows everything about one booking:
 
-1. The **booking reference** and its status badges (arrow 1).
-2. **Details**, **Customer** and **Payments** (arrow 2) — including the Razorpay order and payment IDs.
-3. **Cancel booking** (arrow 3) — to cancel it, with or without a refund.
+1. The **booking reference** and its status badges.
+2. **Details**, **Customer** and **Payments** — including the Razorpay order and payment IDs.
+3. **Cancel booking** — to cancel it, with or without a refund.
 4. **History** — every step the booking went through, with times.
 
 ![Booking detail](admin-guide-images/a04-booking-detail.png)
@@ -70,12 +70,12 @@ The booking page shows everything about one booking:
 
 On the booking page, in **Cancel booking**:
 
-1. Type a **Reason** (arrow 1). The customer sees it on their booking page and in the refund email.
-2. Choose what happens to the money (arrow 2):
+1. Type a **Reason**. The customer sees it on their booking page and in the refund email.
+2. Choose what happens to the money:
    - **Cancel and refund in full** — Razorpay refunds the customer's original payment method. The booking is only cancelled if Razorpay accepts the refund.
    - **Cancel without a refund** — the payment stays; you can still refund later from the same page.
-3. Tick **I understand this frees the slot and can't be undone** (arrow 3).
-4. Click the red **Cancel & refund ₹…** button (arrow 4).
+3. Tick **I understand this frees the slot and can't be undone**.
+4. Click the red **Cancel & refund ₹…** button.
 
 ![Cancel and refund](admin-guide-images/a05-cancel-refund.png)
 
@@ -95,7 +95,7 @@ If a booking was cancelled **without** a refund, a **Refund payment** box appear
 
 ## Step 7 — Courts
 
-Open **Courts** in the menu. Every court is shown with its status and rate card (arrow 1: click one to open it). Below are the **Online booking hours** (arrow 2) and the day schedule for all courts.
+Open **Courts** in the menu. Every court is shown with its status and rate card. Below are the **Online booking hours** and the day schedule for all courts.
 
 ![Courts](admin-guide-images/a07-courts.png)
 
@@ -105,8 +105,8 @@ Open **Courts** in the menu. Every court is shown with its status and rate card 
 
 Customers can only book between the first and last slot you set (default **7 AM – 10 PM**).
 
-1. Set **First slot starts** (arrow 1) and **Last slot ends** (arrow 2).
-2. Click **Save booking hours** (arrow 3).
+1. Set **First slot starts** and **Last slot ends**.
+2. Click **Save booking hours**.
 
 Bookings are always 1 or 2 hours on the hour, so the last slot ends at your closing time.
 
@@ -118,10 +118,10 @@ Bookings are always 1 or 2 hours on the hour, so the last slot ends at your clos
 
 Open a court (**Courts** → the court). Use **Block slots** to stop customers booking it:
 
-1. **Type** (arrow 1): *Blocked (event, private use)* or *Maintenance*.
-2. **Reason** (arrow 2): this is **shown to customers** on the slot.
-3. Choose **From date / To date**, then **Whole day** (arrow 3) or a **From / Until** time range.
-4. Click **Block court** (arrow 4).
+1. **Type**: *Blocked (event, private use)* or *Maintenance*.
+2. **Reason**: this is **shown to customers** on the slot.
+3. Choose **From date / To date**, then **Whole day** or a **From / Until** time range.
+4. Click **Block court**.
 
 ![Block form](admin-guide-images/a09-block-form.png)
 
@@ -131,7 +131,7 @@ Open a court (**Courts** → the court). Use **Block slots** to stop customers b
 
 ## Step 10 — Check or remove a block
 
-The block appears under **Current & upcoming blocks** (arrow 1) and shows as black on the schedule grid. Click **Remove** next to it to free the court again.
+The block appears under **Current & upcoming blocks** and shows as black on the schedule grid. Click **Remove** next to it to free the court again.
 
 ![Block active](admin-guide-images/a10-block-done.png)
 
@@ -141,11 +141,11 @@ The block appears under **Current & upcoming blocks** (arrow 1) and shows as bla
 
 On the same court page, **Court settings & rate card**:
 
-1. **Status** (arrow 1): *Active — bookable*, *Maintenance* or *Inactive*. Only active courts can be booked.
-2. **1 hour (₹)** (arrow 2) and **2 hours (₹)** (arrow 3). The 2-hour price is a package price (not twice the hourly price). The same price applies at every time of day.
-3. **Monthly plans** (arrow 4): 1, 3, 6 and 12 months. Leave one blank if it isn't offered. Monthly plans appear on the website; customers arrange them with you directly, not online.
+1. **Status**: *Active — bookable*, *Maintenance* or *Inactive*. Only active courts can be booked.
+2. **1 hour (₹)** and **2 hours (₹)**. The 2-hour price is a package price (not twice the hourly price). The same price applies at every time of day.
+3. **Monthly plans**: 1, 3, 6 and 12 months. Leave one blank if it isn't offered. Monthly plans appear on the website; customers arrange them with you directly, not online.
 4. Optional **Playing surface** and **Description** — shown to customers.
-5. Click **Save court** (arrow 5).
+5. Click **Save court**.
 
 ![Court settings](admin-guide-images/a11-court-settings.png)
 
@@ -155,7 +155,7 @@ On the same court page, **Court settings & rate card**:
 
 ## Step 12 — Payments
 
-**Payments** lists every Razorpay payment and refund with its status (arrow 1), so you can reconcile with your Razorpay dashboard.
+**Payments** lists every Razorpay payment and refund with its status, so you can reconcile with your Razorpay dashboard.
 
 ![Payments](admin-guide-images/a12-payments.png)
 
@@ -163,7 +163,7 @@ On the same court page, **Court settings & rate card**:
 
 ## Step 13 — Change your password
 
-**Account** lets you change your password: enter your **current password** (arrow 1) and a **new password** of at least 12 characters (arrow 2), confirm it, and save. Your other signed-in sessions are signed out.
+**Account** lets you change your password: enter your **current password** and a **new password** of at least 12 characters, confirm it, and save. Your other signed-in sessions are signed out.
 
 ![Account](admin-guide-images/a13-account.png)
 
@@ -171,7 +171,7 @@ On the same court page, **Court settings & rate card**:
 
 ## Step 14 — Sign out
 
-Always click **Sign out** (arrow 1) at the bottom of the left menu when you finish, especially on a shared computer.
+Always click **Sign out** at the bottom of the left menu when you finish, especially on a shared computer.
 
 ![Sign out](admin-guide-images/a14-signout.png)
 

@@ -2,7 +2,7 @@
 
 **For customers.** No account or sign-up is needed. You choose a court, pay online, and get a confirmation page. The whole thing takes about two minutes.
 
-> **How to read the pictures:** each screenshot has **red numbered arrows**. Follow them in order — **1 → 2 → 3** — to see exactly what to click or fill in.
+> **How to read the pictures:** the **red arrow** in each screenshot points to the next thing to click — the main action of that step. The text under each picture explains the rest.
 
 **Quick path:** Book a Court ➜ Sport ➜ Court ➜ Date ➜ Hours ➜ Time ➜ Your details ➜ Review ➜ Pay ➜ Confirmed ✅
 
@@ -10,7 +10,7 @@
 
 ## Step 1 — Open the website and start
 
-Open the academy website. At the top you will see the menu. Click **Book a Court** (arrow 1) to go straight to the booking section. Use **Court Rentals** (arrow 2) to see prices first, or tap a sport (arrow 3) to book it directly.
+Open the academy website. At the top you will see the menu. Click **Book a Court** to go straight to the booking section. Use **Court Rentals** to see prices first, or tap a sport to book it directly.
 
 ![Home page](user-guide-images/u01-home.png)
 
@@ -21,17 +21,17 @@ Open the academy website. At the top you will see the menu. Click **Book a Court
 You can start booking from any of these places. They all lead to the same booking flow, with your choice already selected.
 
 ### A. From a sport
-Scroll to **Sports** and click **Book … now** (arrow 1) on the sport you want.
+Scroll to **Sports** and click **Book … now** on the sport you want.
 
 ![Sports section](user-guide-images/u02-sports.png)
 
 ### B. From a court card
-Scroll to **Courts**. Each card shows the court, its surface and a live price. Click **Book** (arrow 1) on the exact court you want.
+Scroll to **Courts**. Each card shows the court, its surface and a live price. Click **Book** on the exact court you want.
 
 ![Courts section](user-guide-images/u03-courts.png)
 
 ### C. From the price list
-**Court Rentals** shows every court's price for **1 hour**, **2 hours** and **monthly plans** (arrow 1). Click **Book …** in a row (arrow 2) to book that court.
+**Court Rentals** shows every court's price for **1 hour**, **2 hours** and **monthly plans**. Click **Book …** in a row to book that court.
 
 - The **2-hour price is a package price** — it is cheaper than booking 1 hour twice.
 - The same price applies at every time of day.
@@ -43,7 +43,7 @@ Scroll to **Courts**. Each card shows the court, its surface and a live price. C
 
 ## Step 3 — Choose your sport and court
 
-In the booking section, pick your **sport** (arrow 1), then your **court** (arrow 2). Each court shows its surface and price.
+In the booking section, pick your **sport**, then your **court**. Each court shows its surface and price.
 
 ![Choose sport and court](user-guide-images/u05-wizard-sport-court.png)
 
@@ -53,7 +53,7 @@ In the booking section, pick your **sport** (arrow 1), then your **court** (arro
 
 ## Step 4 — Pick a date and how long
 
-Click a **date** (arrow 1), then choose **1 hour** or **2 hours** (arrow 2). The price of each option is shown on its button.
+Click a **date**, then choose **1 hour** or **2 hours**. The price of each option is shown on its button.
 
 ![Date and duration](user-guide-images/u06-wizard-date-duration.png)
 
@@ -61,7 +61,7 @@ Click a **date** (arrow 1), then choose **1 hour** or **2 hours** (arrow 2). The
 
 ## Step 5 — Pick a time slot
 
-Slots are grouped into **Morning**, **Afternoon** and **Evening**. Tap any free slot (arrow 1) — it turns neon green. The **Booking summary** on the right shows your sport, court, date, time and total. When it looks right, click **Continue** (arrow 2).
+Slots are grouped into **Morning**, **Afternoon** and **Evening**. Tap any free slot — it turns neon green. The **Booking summary** on the right shows your sport, court, date, time and total. When it looks right, click **Continue**.
 
 Slots that are greyed out are already booked, being held by someone paying right now, blocked by the academy, or in the past.
 
@@ -71,7 +71,7 @@ Slots that are greyed out are already booked, being held by someone paying right
 
 ## Step 6 — Enter your details
 
-Fill in your **name** (arrow 1), **email** (arrow 2) and **mobile number** (arrow 3), then click **Review booking** (arrow 4).
+Fill in your **name**, **email** and **mobile number**, then click **Review booking**.
 
 ![Your details](user-guide-images/u08-details.png)
 
@@ -79,7 +79,7 @@ Fill in your **name** (arrow 1), **email** (arrow 2) and **mobile number** (arro
 
 ## Step 7 — Review and pay
 
-Check the court, date and time (arrow 1). If everything is correct, click **Pay ₹… securely** (arrow 2).
+Check the court, date and time. If everything is correct, click **Pay ₹… securely**.
 
 **Your slot is now held for 10 minutes** so nobody else can take it while you pay.
 
@@ -89,7 +89,7 @@ Check the court, date and time (arrow 1). If everything is correct, click **Pay 
 
 ## Step 8 — Complete the payment
 
-The secure **Razorpay** payment window opens. Pay with UPI, card or net banking (arrow 1). Do not close the window or press Back until you see the confirmation page.
+The secure **Razorpay** payment window opens. Pay with UPI, card or net banking. Do not close the window or press Back until you see the confirmation page.
 
 ![Razorpay Checkout](user-guide-images/u10-checkout.png)
 
@@ -101,9 +101,9 @@ The secure **Razorpay** payment window opens. Pay with UPI, card or net banking 
 
 You land on your **confirmation page**. It shows your booking reference (like `SP-ABC123`), court, date and time. From here you can:
 
-1. See that your booking is **confirmed** (arrow 1).
-2. **Add to calendar** (arrow 2) to get a reminder on your phone.
-3. **Print** the page (arrow 3).
+1. See that your booking is **confirmed**.
+2. **Add to calendar** to get a reminder on your phone.
+3. **Print** the page.
 
 **Save or bookmark this page's link** — it is your private link to your booking. Bring your booking reference when you come to play.
 
@@ -113,7 +113,7 @@ You land on your **confirmation page**. It shows your booking reference (like `S
 
 ## Step 10 — Policies
 
-Before booking, read the **Cancellation & refund policy** (arrow 1). It is linked in the footer of every page, along with the Privacy policy and Terms.
+Before booking, read the **Cancellation & refund policy**. It is linked in the footer of every page, along with the Privacy policy and Terms.
 
 ![Cancellation policy](user-guide-images/u12-policy.png)
 
