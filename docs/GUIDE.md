@@ -229,7 +229,7 @@ Search and filter all bookings.
 
 Open one for the full detail: customer, slot, payment status, and the actions **Cancel** or **Cancel and refund** (refund is sent through Razorpay).
 
-![Booking detail](guide-images/18-admin-booking-detail.png)
+![Booking detail](admin-guide-images/a04-booking-detail.png)
 
 ### Step 4 — Courts
 Each court's status and rate card at a glance.
