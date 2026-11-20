@@ -1,5 +1,7 @@
 /**
- * Administrator accounts from the command line (there is no public sign-up).
+ * Staff accounts from the command line (there is no public sign-up). Supervisors, and changing
+ * anyone's role, are managed by an administrator under Staff Management in the dashboard; this
+ * script creates administrators (e.g. the first one) and rescues access.
  *
  *   npm run admin -- create <email> "<name>"     create an administrator
  *   npm run admin -- password <email>            set a new password (signs out their sessions)
@@ -10,7 +12,7 @@
  */
 import "dotenv/config";
 import { createInterface } from "node:readline";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import * as schema from "../src/server/db/schema";
@@ -40,7 +42,10 @@ async function main() {
   const byEmail = (email: string) => eq(sql`lower(${schema.users.email})`, email.trim().toLowerCase());
   try {
     if (command === "list") {
-      const rows = await db.select({ email: schema.users.email, name: schema.users.name, active: schema.users.isActive, lastLoginAt: schema.users.lastLoginAt }).from(schema.users).where(eq(schema.users.role, "ADMIN"));
+      const rows = await db
+        .select({ email: schema.users.email, name: schema.users.name, role: schema.users.role, active: schema.users.isActive, lastLoginAt: schema.users.lastLoginAt })
+        .from(schema.users)
+        .where(inArray(schema.users.role, ["ADMIN", "SUPERVISOR"]));
       console.table(rows);
       return;
     }
@@ -67,7 +72,9 @@ async function main() {
       console.log(`✅ Administrator ${email} created. Sign in at /admin/login.`);
     } else {
       if (!existing) throw new Error(`No account for ${email}.`);
-      await db.update(schema.users).set({ passwordHash, role: "ADMIN", isActive: true }).where(eq(schema.users.id, existing.id));
+      // A supervisor keeps their role; any other (legacy) account is restored as an administrator.
+      const role = existing.role === "SUPERVISOR" ? "SUPERVISOR" : "ADMIN";
+      await db.update(schema.users).set({ passwordHash, role, isActive: true }).where(eq(schema.users.id, existing.id));
       await db.delete(schema.sessions).where(eq(schema.sessions.userId, existing.id));
       console.log(`✅ Password updated for ${email}; existing sessions were signed out.`);
     }

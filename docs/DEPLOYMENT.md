@@ -173,6 +173,7 @@ point the demo workflow at a real database.
 
 ## Operations
 
+- **Staff:** administrators create supervisors and other administrators under *Staff Management* in the dashboard (`/admin/staff`); the activity log is at `/admin/activity`.
 - **Administrators:** `npm run admin -- create <email> "Name"`, `npm run admin -- password <email>`,
   `npm run admin -- deactivate <email>`, `npm run admin -- list` (reads `DATABASE_URL`; the
   password comes from `ADMIN_PASSWORD` or is prompted for).

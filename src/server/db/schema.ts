@@ -42,11 +42,11 @@ import {
 /* ────────────────────────────────────────────────────────────────────────── */
 
 /**
- * Only ADMIN accounts can sign in. The other values belong to accounts from the earlier
- * academy app; migration 0004 deactivated those accounts and kept the rows so audit trails
- * that reference them stay intact.
+ * Only ADMIN and SUPERVISOR (staff) accounts can sign in. The other values belong to accounts
+ * from the earlier academy app; migration 0004 deactivated those accounts and kept the rows so
+ * audit trails that reference them stay intact. MANAGER is not SUPERVISOR and never signs in.
  */
-export const userRole = pgEnum("user_role", ["ADMIN", "MANAGER", "COACH", "RECEPTION", "CUSTOMER"]);
+export const userRole = pgEnum("user_role", ["ADMIN", "MANAGER", "COACH", "RECEPTION", "CUSTOMER", "SUPERVISOR"]);
 export const courtStatus = pgEnum("court_status", ["ACTIVE", "MAINTENANCE", "INACTIVE"]);
 export const courtBlockType = pgEnum("court_block_type", ["MAINTENANCE", "BLOCKED"]);
 export const bookingStatus = pgEnum("booking_status", [
@@ -395,13 +395,20 @@ export const auditLogs = pgTable(
   {
     id: id(),
     actorId: uuid("actor_id").references(() => users.id, { onDelete: "set null" }),
+    /** The actor's role when the event happened (null for system events and rows from before roles were recorded). */
+    actorRole: varchar("actor_role", { length: 20 }),
     action: varchar("action", { length: 80 }).notNull(),
     entity: varchar("entity", { length: 60 }).notNull(),
     entityId: varchar("entity_id", { length: 60 }),
     meta: jsonb("meta").$type<Record<string, unknown>>(),
     createdAt: createdAt(),
   },
-  (t) => [index("audit_logs_created_idx").on(t.createdAt), index("audit_logs_entity_idx").on(t.entity, t.entityId)],
+  (t) => [
+    index("audit_logs_created_idx").on(t.createdAt),
+    index("audit_logs_entity_idx").on(t.entity, t.entityId),
+    index("audit_logs_actor_idx").on(t.actorId, t.createdAt),
+    index("audit_logs_action_idx").on(t.action, t.createdAt),
+  ],
 );
 
 /* ────────────────────────────────────────────────────────────────────────── */

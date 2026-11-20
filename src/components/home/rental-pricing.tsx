@@ -6,7 +6,7 @@ import { buttonClass } from "@/components/ui/button";
 import { mailHref, site, telHref } from "@/content/site";
 import { twoHourSaving } from "@/lib/booking/engine";
 import { formatMoney } from "@/lib/format";
-import { HOURLY_TERMS, MONTHLY_TERMS, tariffRows, type TariffRow } from "@/lib/pricing";
+import { HOURLY_TERMS, MONTHLY_TERMS, monthlySavings, tariffRows, type TariffRow } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
 import type { PublicCourt } from "@/server/queries/public";
 import { SectionHeading } from "./section-heading";
@@ -93,6 +93,7 @@ function PricingTable({ rows }: { rows: TariffRow[] }) {
           {rows.map((row) => {
             const target = bookTarget(row);
             const saving = twoHourSaving(row);
+            const planSavings = monthlySavings(row.monthly);
             return (
               <tr key={row.key} id={`price-${row.key.replace(/[^a-z0-9-]/g, "-")}`}>
                 <th scope="row" className="px-6 py-5 font-normal">
@@ -108,6 +109,7 @@ function PricingTable({ rows }: { rows: TariffRow[] }) {
                 {MONTHLY_TERMS.map((t, i) => (
                   <td key={t.key} className={cn("px-4 py-5 text-center", i === 0 && "border-l border-ink-line")}>
                     <span className="tabular text-[1.05rem] font-semibold text-white/90">{price(row.monthly[t.key])}</span>
+                    {planSavings[t.key] !== null ? <span className="mt-0.5 block text-[0.7rem] font-bold text-neon">Save {formatMoney(planSavings[t.key]!)}</span> : null}
                   </td>
                 ))}
                 <td className="border-l border-ink-line px-4 py-5 text-center">
@@ -135,6 +137,7 @@ function PricingCards({ rows }: { rows: TariffRow[] }) {
       {rows.map((row) => {
         const target = bookTarget(row);
         const saving = twoHourSaving(row);
+        const planSavings = monthlySavings(row.monthly);
         return (
           <li key={row.key} className="flex flex-col rounded-[var(--radius-card)] border border-ink-line bg-ink-3">
             <div className="border-b border-ink-line p-5">
@@ -151,11 +154,14 @@ function PricingCards({ rows }: { rows: TariffRow[] }) {
             </dl>
             <div className="px-5 pt-4 pb-5">
               <p className="eyebrow text-[0.66rem] text-ink-subtle">Monthly · Mon – Sat</p>
-              <dl className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2">
+              <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2">
                 {MONTHLY_TERMS.map((t) => (
                   <div key={t.key} className="flex items-baseline justify-between gap-2 border-b border-ink-line pb-2">
-                    <dt className="text-sm text-ink-muted">{t.label}</dt>
-                    <dd className="tabular text-[0.98rem] font-bold">{price(row.monthly[t.key])}</dd>
+                    <dt className="text-[0.74rem] whitespace-nowrap text-ink-muted">{t.label}</dt>
+                    <dd className="text-right whitespace-nowrap">
+                      <span className="tabular block text-[0.92rem] leading-tight font-bold">{price(row.monthly[t.key])}</span>
+                      {planSavings[t.key] !== null ? <span className="block text-[0.7rem] leading-tight font-bold text-neon">Save {formatMoney(planSavings[t.key]!)}</span> : null}
+                    </dd>
                   </div>
                 ))}
               </dl>

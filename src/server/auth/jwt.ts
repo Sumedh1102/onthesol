@@ -1,11 +1,11 @@
 /**
- * Admin session token signing/verification. Kept free of database imports so that the proxy
+ * Staff session token signing/verification. Kept free of database imports so that the proxy
  * (src/proxy.ts) can use it for fast, optimistic route protection.
  */
 import { SignJWT, jwtVerify } from "jose";
 
 export const SESSION_COOKIE = "sp_session";
-/** Admin sessions last 7 days (and can be revoked at any time by deleting the sessions row). */
+/** Staff sessions last 7 days (and can be revoked at any time by deleting the sessions row). */
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
 export type SessionClaims = { sid: string; sub: string; role: string };

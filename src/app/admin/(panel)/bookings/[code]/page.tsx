@@ -6,6 +6,8 @@ import { PageHeader, Panel } from "@/components/admin/page-header";
 import { Alert } from "@/components/ui/field";
 import { BookingStatusBadge, PaymentStatusBadge } from "@/components/admin/status-badge";
 import { formatDate, formatDateTime, formatDuration, formatMinutes, formatMoney } from "@/lib/format";
+import { can } from "@/lib/permissions";
+import { requireStaff } from "@/server/auth/guards";
 import { getBookingDetail } from "@/server/queries/admin";
 
 export async function generateMetadata({ params }: PageProps<"/admin/bookings/[code]">) {
@@ -19,6 +21,8 @@ const NOTICES: Record<string, string> = {
 };
 
 export default async function AdminBookingPage({ params, searchParams }: PageProps<"/admin/bookings/[code]">) {
+  const staff = await requireStaff();
+  const canRefund = can(staff.role, "bookings.refund");
   const { code } = await params;
   const { notice } = await searchParams;
   const d = await getBookingDetail(code);
@@ -129,10 +133,10 @@ export default async function AdminBookingPage({ params, searchParams }: PagePro
           {active ? (
             <Panel title="Cancel booking">
               <div className="p-5">
-                <CancelBookingForm bookingId={b.id} paidAmount={paid ? paid.amount : null} />
+                <CancelBookingForm bookingId={b.id} paidAmount={paid ? paid.amount : null} canRefund={canRefund} />
               </div>
             </Panel>
-          ) : refundable ? (
+          ) : refundable && canRefund ? (
             <Panel title="Refund payment">
               <div className="space-y-3 p-5">
                 <p className="text-sm text-muted">This booking is no longer active but its payment hasn&apos;t been refunded.</p>

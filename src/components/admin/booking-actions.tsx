@@ -9,9 +9,9 @@ import { formatMoney } from "@/lib/format";
 import { FormMessage, fieldError } from "./form-message";
 
 /** Cancel an active booking. Refunding is an explicit choice, never automatic. */
-export function CancelBookingForm({ bookingId, paidAmount }: { bookingId: string; paidAmount: number | null }) {
+export function CancelBookingForm({ bookingId, paidAmount, canRefund }: { bookingId: string; paidAmount: number | null; canRefund: boolean }) {
   const [state, dispatch, pending] = useActionState(cancelBookingAction, null);
-  const [refund, setRefund] = useState(paidAmount ? "yes" : "no");
+  const [refund, setRefund] = useState(paidAmount && canRefund ? "yes" : "no");
   const [confirmed, setConfirmed] = useState(false);
   if (state?.ok) return <FormMessage state={state} />;
   return (
@@ -21,7 +21,7 @@ export function CancelBookingForm({ bookingId, paidAmount }: { bookingId: string
       <Field id="cancel-reason" label="Reason" hint="Shown to the customer on their booking page and in the refund email." error={fieldError(state, "reason")}>
         <Textarea id="cancel-reason" name="reason" rows={2} maxLength={200} required />
       </Field>
-      {paidAmount ? (
+      {paidAmount && canRefund ? (
         <fieldset className="space-y-2">
           <legend className="text-sm font-semibold">Payment of {formatMoney(paidAmount)}</legend>
           <label className="flex items-start gap-3 rounded-xl border border-line p-3 text-sm has-[:checked]:border-ink has-[:checked]:bg-paper">
@@ -40,7 +40,10 @@ export function CancelBookingForm({ bookingId, paidAmount }: { bookingId: string
           </label>
         </fieldset>
       ) : (
-        <input type="hidden" name="refund" value="no" />
+        <>
+          <input type="hidden" name="refund" value="no" />
+          {paidAmount ? <p className="rounded-xl border border-line bg-paper p-3 text-sm text-muted">This booking has a payment of {formatMoney(paidAmount)}. Supervisors can cancel without a refund; only an administrator can refund it later.</p> : null}
+        </>
       )}
       <label className="flex items-center gap-2.5 text-sm">
         <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="size-4 accent-[var(--color-danger)]" />

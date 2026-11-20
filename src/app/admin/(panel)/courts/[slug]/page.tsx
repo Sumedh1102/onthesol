@@ -7,17 +7,21 @@ import { ScheduleGrid } from "@/components/admin/schedule-grid";
 import { Badge } from "@/components/ui/badge";
 import { buttonClass } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
-import { formatDate, formatTimeRange } from "@/lib/format";
+import { formatDate, formatMoney, formatTimeRange } from "@/lib/format";
+import { can } from "@/lib/permissions";
 import { addDays, isValidISODate } from "@/lib/time";
 import { getCourtAdmin, getScheduleForDate } from "@/server/queries/admin";
 import { upcomingBookingCount } from "@/server/services/admin";
 import { getBookingSettings, hoursOf } from "@/server/settings";
+import { requireStaff } from "@/server/auth/guards";
 
 export async function generateMetadata({ params }: PageProps<"/admin/courts/[slug]">) {
   return { title: `Court · ${(await params).slug}` };
 }
 
 export default async function AdminCourtPage({ params, searchParams }: PageProps<"/admin/courts/[slug]">) {
+  const staff = await requireStaff();
+  const canEdit = can(staff.role, "courts.edit");
   const { slug } = await params;
   const { date: dateParam } = await searchParams;
   const data = await getCourtAdmin(slug);
@@ -86,10 +90,33 @@ export default async function AdminCourtPage({ params, searchParams }: PageProps
             )}
           </Panel>
 
-          <Panel title="Court settings & rate card">
-            <div className="p-5">
-              <CourtSettingsForm court={court} upcoming={upcoming} sportName={sport.name} />
-            </div>
+          <Panel title={canEdit ? "Court settings & rate card" : "Rate card"}>
+            {canEdit ? (
+              <div className="p-5">
+                <CourtSettingsForm court={court} upcoming={upcoming} sportName={sport.name} />
+              </div>
+            ) : (
+              <div className="space-y-3 p-5 text-sm">
+                <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line">
+                  {(
+                    [
+                      ["1 hour", court.price1h],
+                      ["2 hours", court.price2h],
+                      ["Monthly · 1 month", court.monthlyPrice1m],
+                      ["Monthly · 3 months", court.monthlyPrice3m],
+                      ["Monthly · 6 months", court.monthlyPrice6m],
+                      ["Monthly · 12 months", court.monthlyPrice12m],
+                    ] as const
+                  ).map(([label, value]) => (
+                    <div key={label} className="bg-white px-4 py-3">
+                      <dt className="text-xs text-subtle">{label}</dt>
+                      <dd className="tabular mt-0.5 font-semibold">{value === null ? "—" : formatMoney(value)}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <p className="text-muted">Only an administrator can change court prices, status or details.</p>
+              </div>
+            )}
           </Panel>
         </div>
       </div>

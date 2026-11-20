@@ -7,6 +7,7 @@ import { checkSlotRules, isDuration, type Duration } from "@/lib/booking/rules";
 import type { BookingSettings } from "@/lib/settings-types";
 import { addDays, isValidISODate, nowMinutesInTz, rangesOverlap, todayInTz } from "@/lib/time";
 import { formatDate, formatTimeRange } from "@/lib/format";
+import { audit } from "@/server/audit";
 import { getBookingSettings, hoursOf } from "@/server/settings";
 import { bookingRuleViolation, DomainError, isExclusionViolation, isUniqueViolation } from "@/server/errors";
 import { randomCode } from "@/server/security";
@@ -175,6 +176,11 @@ export async function transitionBooking(
 ): Promise<Booking> {
   const [updated] = await tx.update(bookings).set({ status, ...opts.patch }).where(eq(bookings.id, bookingId)).returning();
   await tx.insert(bookingEvents).values({ bookingId, status, note: opts.note?.slice(0, 300) ?? null, actorId: opts.actorId ?? null });
+  // Activity log. Cancellations are logged by their callers, which know the reason and whether a refund was issued.
+  if (status !== "CANCELLED") {
+    const action = status === "CONFIRMED" ? "booking.confirmed" : status === "EXPIRED" ? "booking.expired" : "booking.status_changed";
+    await audit(opts.actorId, action, "booking", bookingId, { code: updated!.code, to: status, note: opts.note }, tx);
+  }
   return updated!;
 }
 
@@ -191,9 +197,10 @@ export async function expireStaleHolds(conn: DbOrTx, scope: { courtId?: string; 
         scope.date ? eq(bookings.date, scope.date) : undefined,
       ),
     )
-    .returning({ id: bookings.id });
+    .returning({ id: bookings.id, code: bookings.code });
   if (expired.length) {
     await conn.insert(bookingEvents).values(expired.map((b) => ({ bookingId: b.id, status: "EXPIRED" as const, note: "Payment window elapsed; slot released" })));
+    for (const b of expired) await audit(null, "booking.expired", "booking", b.id, { code: b.code, to: "EXPIRED", note: "Payment window elapsed; slot released" }, conn);
   }
   return expired.length;
 }
@@ -294,6 +301,7 @@ export async function createBookingHold(input: CreateHoldInput): Promise<Booking
           status: "PENDING",
           note: `Slot held: ${court.name} · ${formatDate(input.date)} · ${formatTimeRange(input.startMinute, endMinute)}`,
         });
+        await audit(null, "booking.created", "booking", booking!.id, { code: booking!.code, court: court.name, date: input.date, time: formatTimeRange(input.startMinute, endMinute), total: price, customer: input.customer.name }, tx);
         return { ...booking!, courtName: court.name, sportName: sport.name };
       });
     } catch (err) {

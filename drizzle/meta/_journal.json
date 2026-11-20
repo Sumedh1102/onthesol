@@ -43,6 +43,13 @@
       "when": 1794316800000,
       "tag": "0005_rental_pricing",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795155939554,
+      "tag": "0006_staff_roles_activity_log",
+      "breakpoints": true
     }
   ]
 }

@@ -8,12 +8,14 @@ import { Input, Select } from "@/components/ui/field";
 import { formatDate, formatMinutes, formatMoney } from "@/lib/format";
 import { isValidISODate } from "@/lib/time";
 import { listBookings } from "@/server/queries/admin";
+import { requireStaff } from "@/server/auth/guards";
 
 export const metadata = { title: "Bookings" };
 
 const one = (v: string | string[] | undefined) => (typeof v === "string" && v ? v : undefined);
 
 export default async function AdminBookingsPage({ searchParams }: PageProps<"/admin/bookings">) {
+  await requireStaff();
   const sp = await searchParams;
   const filters = {
     q: one(sp.q)?.slice(0, 100),

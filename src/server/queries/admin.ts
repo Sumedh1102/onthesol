@@ -1,9 +1,10 @@
 import "server-only";
 import { and, asc, count, desc, eq, gt, gte, ilike, inArray, isNull, lte, or, sql, sum, type SQL } from "drizzle-orm";
 import { db } from "@/server/db";
-import { bookingEvents, bookings, courtBlocks, courts, payments, sports, users, type BookingStatus, type PaymentStatus } from "@/server/db/schema";
+import { auditLogs, bookingEvents, bookings, courtBlocks, courts, payments, sports, users, type BookingStatus, type PaymentStatus } from "@/server/db/schema";
 import { hourMarks } from "@/lib/booking/rules";
-import { addDays, nowMinutesInTz, rangesOverlap } from "@/lib/time";
+import { AUDIT_ACTIONS, AUDIT_MODULES } from "@/lib/audit";
+import { addDays, DEFAULT_TIMEZONE, isValidISODate, nowMinutesInTz, rangesOverlap } from "@/lib/time";
 import { bookingWindow } from "@/server/services/bookings";
 import { getBookingSettings, hoursOf } from "@/server/settings";
 
@@ -301,6 +302,82 @@ export async function listPayments(f: { q?: string; status?: string; page?: numb
       .limit(PAGE_SIZE)
       .offset((page - 1) * PAGE_SIZE),
     db.select({ n: count() }).from(payments).leftJoin(bookings, eq(bookings.id, payments.bookingId)).where(where),
+  ]);
+  return { rows, total: total?.n ?? 0, page, pageSize: PAGE_SIZE };
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* Activity log (ADMIN only — callers must have passed requireAdmin())       */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+export type ActivityFilters = {
+  q?: string;
+  /** A user id, or "system" for events without a staff actor. */
+  user?: string;
+  /** ADMIN, SUPERVISOR or SYSTEM. */
+  role?: string;
+  action?: string;
+  module?: string;
+  /** Inclusive local (Asia/Kolkata) dates, YYYY-MM-DD. */
+  from?: string;
+  to?: string;
+  page?: number;
+};
+
+export async function listActivity(f: ActivityFilters) {
+  const page = Math.max(1, f.page ?? 1);
+  const conds: (SQL | undefined)[] = [];
+  const roleExpr = sql<string | null>`coalesce(${auditLogs.actorRole}, ${users.role}::text)`;
+  const localDay = sql`((${auditLogs.createdAt} at time zone ${DEFAULT_TIMEZONE})::date)`;
+
+  const q = f.q?.trim();
+  if (q) {
+    const like = `%${q.replace(/[%_\\]/g, (c) => `\\${c}`)}%`;
+    const byLabel = Object.entries(AUDIT_ACTIONS)
+      .filter(([, label]) => label.toLowerCase().includes(q.toLowerCase()))
+      .map(([action]) => action);
+    conds.push(
+      or(
+        ilike(auditLogs.action, like),
+        ilike(auditLogs.entityId, like),
+        ilike(users.name, like),
+        ilike(users.email, like),
+        sql`${auditLogs.meta}::text ilike ${like}`,
+        byLabel.length ? inArray(auditLogs.action, byLabel) : undefined,
+      ),
+    );
+  }
+  if (f.user === "system") conds.push(isNull(auditLogs.actorId));
+  else if (f.user && /^[0-9a-f-]{36}$/i.test(f.user)) conds.push(eq(auditLogs.actorId, f.user));
+  if (f.role === "SYSTEM") conds.push(isNull(auditLogs.actorId));
+  else if (f.role === "ADMIN" || f.role === "SUPERVISOR") conds.push(sql`${roleExpr} = ${f.role}`);
+  if (f.action) conds.push(eq(auditLogs.action, f.action));
+  if (f.module && AUDIT_MODULES.some((m) => m.key === f.module)) conds.push(sql`${auditLogs.action} like ${`${f.module}.%`}`);
+  if (f.from && isValidISODate(f.from)) conds.push(sql`${localDay} >= ${f.from}::date`);
+  if (f.to && isValidISODate(f.to)) conds.push(sql`${localDay} <= ${f.to}::date`);
+  const where = and(...conds);
+
+  const [rows, [total]] = await Promise.all([
+    db
+      .select({
+        id: auditLogs.id,
+        createdAt: auditLogs.createdAt,
+        action: auditLogs.action,
+        entity: auditLogs.entity,
+        entityId: auditLogs.entityId,
+        meta: auditLogs.meta,
+        actorId: auditLogs.actorId,
+        actorName: users.name,
+        actorEmail: users.email,
+        role: roleExpr,
+      })
+      .from(auditLogs)
+      .leftJoin(users, eq(users.id, auditLogs.actorId))
+      .where(where)
+      .orderBy(desc(auditLogs.createdAt), desc(auditLogs.id))
+      .limit(PAGE_SIZE)
+      .offset((page - 1) * PAGE_SIZE),
+    db.select({ n: count() }).from(auditLogs).leftJoin(users, eq(users.id, auditLogs.actorId)).where(where),
   ]);
   return { rows, total: total?.n ?? 0, page, pageSize: PAGE_SIZE };
 }

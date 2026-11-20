@@ -5,6 +5,7 @@ import { bookings, courts, payments, sports, type Booking, type Payment } from "
 import { formatDate, formatMoney, formatTimeRange } from "@/lib/format";
 import { site } from "@/content/site";
 import { DomainError, isExclusionViolation } from "@/server/errors";
+import { audit } from "@/server/audit";
 import { sendEmail } from "@/server/email";
 import { bookingAccessToken, randomCode } from "@/server/security";
 import { transitionBooking } from "@/server/services/bookings";
@@ -19,6 +20,16 @@ import {
   razorpayConfig,
   type RazorpayPayment,
 } from "./razorpay";
+
+/** The facts about a payment worth showing in the activity log (no card, token or signature data). */
+async function paymentFacts(payment: Pick<Payment, "receiptNumber" | "amount" | "bookingId">) {
+  let code: string | null = null;
+  if (payment.bookingId) {
+    const [b] = await db.select({ code: bookings.code }).from(bookings).where(eq(bookings.id, payment.bookingId)).limit(1);
+    code = b?.code ?? null;
+  }
+  return { receipt: payment.receiptNumber, code, amount: payment.amount };
+}
 
 /**
  * Booking payment lifecycle on Razorpay:
@@ -128,6 +139,7 @@ export async function startCheckout(booking: Booking & { courtName: string }): P
   } catch (err) {
     console.error("[payments] order creation failed", err);
     await db.update(payments).set({ status: "FAILED", failureReason: "Could not create the Razorpay order" }).where(eq(payments.id, payment!.id));
+    await audit(null, "payment.failed", "payment", payment!.id, { ...(await paymentFacts(payment!)), reason: "Could not create the Razorpay order" });
     throw new DomainError("We couldn't reach the payment gateway. Your slot hasn't been charged. Please try again.", "PAYMENT_FAILED", 502);
   }
 
@@ -135,6 +147,7 @@ export async function startCheckout(booking: Booking & { courtName: string }): P
     await tx.update(payments).set({ status: "INITIATED", providerOrderId: orderId }).where(eq(payments.id, payment!.id));
     if (booking.status === "PENDING") await transitionBooking(tx, booking.id, "PAYMENT_INITIATED", { note: `Razorpay order ${orderId} created` });
   });
+  await audit(null, "payment.initiated", "payment", payment!.id, await paymentFacts(payment!));
   return checkoutParams(booking, orderId);
 }
 
@@ -272,6 +285,7 @@ export async function recordCapture(input: { orderId: string; paymentId: string;
     return outcome.kind;
   }
   if (outcome.kind !== "captured") return outcome.kind;
+  await audit(null, "payment.succeeded", "payment", outcome.payment.id, await paymentFacts(outcome.payment));
   if (outcome.fulfilment.refund) {
     // The booking wasn't confirmed by this payment, so leave the booking as it is.
     await refundPayment(outcome.payment.id, { reason: outcome.fulfilment.reason, cancelBooking: false });
@@ -283,10 +297,12 @@ export async function recordCapture(input: { orderId: string; paymentId: string;
 
 /** Records a failed attempt. The order stays open, so the customer can retry until the hold ends. */
 export async function recordFailure(orderId: string, reason: string | null) {
-  await db
+  const failed = await db
     .update(payments)
     .set({ status: "FAILED", failureReason: (reason || "Payment failed").slice(0, 300) })
-    .where(and(eq(payments.provider, PROVIDER), eq(payments.providerOrderId, orderId), inArray(payments.status, ["CREATED", "INITIATED", "FAILED"])));
+    .where(and(eq(payments.provider, PROVIDER), eq(payments.providerOrderId, orderId), inArray(payments.status, ["CREATED", "INITIATED", "FAILED"])))
+    .returning();
+  for (const p of failed) await audit(null, "payment.failed", "payment", p.id, { ...(await paymentFacts(p)), reason: p.failureReason });
 }
 
 /** Webhook: an authorized (not yet captured) payment. Captures it, then confirms as usual. */
@@ -345,10 +361,12 @@ export async function refundPayment(
   } catch (err) {
     await db.update(payments).set({ refundStatus: payment.refundStatus }).where(eq(payments.id, payment.id));
     console.error("[payments] refund request failed", err);
+    await audit(opts.actorId, "payment.refund_failed", "payment", payment.id, { ...(await paymentFacts(payment)), reason: opts.reason });
     throw new DomainError("Razorpay didn't accept the refund request. Nothing was refunded; please try again.", "PAYMENT_FAILED", 502);
   }
   if (refund.status === "failed") {
     await db.update(payments).set({ refundReference: refund.id, refundStatus: "failed" }).where(eq(payments.id, payment.id));
+    await audit(opts.actorId, "payment.refund_failed", "payment", payment.id, { ...(await paymentFacts(payment)), reason: opts.reason });
     throw new DomainError("Razorpay couldn't process this refund. Check the Razorpay dashboard and try again.", "PAYMENT_FAILED", 502);
   }
 
@@ -369,6 +387,7 @@ export async function refundPayment(
       }
     }
   });
+  await audit(opts.actorId, "payment.refund_requested", "payment", payment.id, { ...(await paymentFacts(payment)), reason: opts.reason });
   if (refund.status === "processed") await applyRefundStatus(refund.id, "processed");
 
   await sendEmail({
@@ -380,9 +399,9 @@ export async function refundPayment(
 
 /** Applies a refund status reported by Razorpay (webhook, refund response or reconciliation). */
 export async function applyRefundStatus(refundId: string, status: "pending" | "processed" | "failed") {
-  await db.transaction(async (tx) => {
+  const changed = await db.transaction(async (tx) => {
     const [payment] = await tx.select().from(payments).where(eq(payments.refundReference, refundId)).for("update");
-    if (!payment || payment.refundStatus === status) return;
+    if (!payment || payment.refundStatus === status) return null;
     if (status === "processed") {
       await tx.update(payments).set({ status: "REFUNDED", refundStatus: "processed", refundedAt: new Date() }).where(eq(payments.id, payment.id));
       if (payment.bookingId) {
@@ -392,7 +411,9 @@ export async function applyRefundStatus(refundId: string, status: "pending" | "p
     } else {
       await tx.update(payments).set({ refundStatus: status }).where(eq(payments.id, payment.id));
     }
+    return payment;
   });
+  if (changed && status !== "pending") await audit(null, status === "processed" ? "payment.refund_completed" : "payment.refund_failed", "payment", changed.id, await paymentFacts(changed));
 }
 
 /* ────────────────────────────────────────────────────────────────────────── */

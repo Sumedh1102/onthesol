@@ -6,10 +6,12 @@ import { BookingStatusBadge, PaymentStatusBadge } from "@/components/admin/statu
 import { formatDate, formatMoney, formatTimeRange } from "@/lib/format";
 import { getOverview } from "@/server/queries/admin";
 import { isRazorpayConfigured, isRazorpayTestMode } from "@/server/payments/razorpay";
+import { requireStaff } from "@/server/auth/guards";
 
 export const metadata = { title: "Overview" };
 
 export default async function AdminOverviewPage() {
+  await requireStaff();
   const o = await getOverview();
   const tiles = [
     { label: "Today's bookings", value: o.stats.today, href: `/admin/bookings?status=confirmed&from=${o.today}&to=${o.today}`, note: "Confirmed, today" },

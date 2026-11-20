@@ -1,21 +1,26 @@
 "use client";
 
-import { CalendarDays, CreditCard, LayoutDashboard, LogOut, Menu, SquareStack, UserRound, X } from "lucide-react";
+import { CalendarDays, CreditCard, LayoutDashboard, LogOut, Menu, ScrollText, SquareStack, UserRound, Users, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { Wordmark } from "@/components/brand/wordmark";
+import { navFor, ROLE_LABELS, type NavItem, type StaffRole } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
-const NAV = [
-  { href: "/admin", label: "Overview", icon: LayoutDashboard },
-  { href: "/admin/bookings", label: "Bookings", icon: CalendarDays },
-  { href: "/admin/courts", label: "Courts", icon: SquareStack },
-  { href: "/admin/payments", label: "Payments", icon: CreditCard },
-  { href: "/admin/account", label: "Account", icon: UserRound },
-] as const;
+const ICONS: Record<NavItem["icon"], typeof LayoutDashboard> = {
+  overview: LayoutDashboard,
+  bookings: CalendarDays,
+  courts: SquareStack,
+  payments: CreditCard,
+  staff: Users,
+  activity: ScrollText,
+  account: UserRound,
+};
 
-export function AdminShell({ adminName, logout, children }: { adminName: string; logout: () => Promise<void>; children: ReactNode }) {
+/** The sidebar only lists what the signed-in role may open; the server enforces the same rules. */
+export function AdminShell({ adminName, role, logout, children }: { adminName: string; role: StaffRole; logout: () => Promise<void>; children: ReactNode }) {
+  const items = navFor(role);
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   useEffect(() => setOpen(false), [pathname]);
@@ -24,7 +29,9 @@ export function AdminShell({ adminName, logout, children }: { adminName: string;
   const nav = (
     <nav aria-label="Admin" className="flex flex-1 flex-col">
       <ul className="space-y-1">
-        {NAV.map(({ href, label, icon: Icon }) => (
+        {items.map(({ href, label, icon }) => {
+          const Icon = ICONS[icon];
+          return (
           <li key={href}>
             <Link
               href={href}
@@ -38,11 +45,15 @@ export function AdminShell({ adminName, logout, children }: { adminName: string;
               {label}
             </Link>
           </li>
-        ))}
+          );
+        })}
       </ul>
       <div className="mt-auto border-t border-white/10 pt-4">
         <p className="px-3.5 text-xs text-ink-muted">Signed in as</p>
         <p className="truncate px-3.5 text-sm font-semibold text-white">{adminName}</p>
+        <p className="px-3.5 pt-0.5 text-xs font-semibold text-neon" data-testid="staff-role">
+          {ROLE_LABELS[role]}
+        </p>
         <form action={logout} className="mt-3">
           <button type="submit" className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium text-ink-muted transition-colors hover:bg-white/5 hover:text-white">
             <LogOut aria-hidden className="size-[1.1rem]" /> Sign out
@@ -60,7 +71,7 @@ export function AdminShell({ adminName, logout, children }: { adminName: string;
       <aside className="sticky top-0 hidden h-dvh flex-col bg-ink px-4 py-6 lg:flex">
         <Link href="/admin" className="mb-8 px-2">
           <Wordmark />
-          <span className="eyebrow mt-3 block text-[0.62rem] text-ink-muted">Admin dashboard</span>
+          <span className="eyebrow mt-3 block text-[0.62rem] text-ink-muted">{role === "ADMIN" ? "Admin dashboard" : "Staff dashboard"}</span>
         </Link>
         {nav}
       </aside>

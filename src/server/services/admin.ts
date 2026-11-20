@@ -185,9 +185,19 @@ export type CourtPatch = {
  */
 export async function updateCourt(courtId: string, patch: CourtPatch, actorId: string) {
   if (patch.price1h < 100 || patch.price2h < 100) throw new DomainError("Hourly prices must be at least ₹1 (online payments can't be smaller).");
+  const [before] = await db.select().from(courts).where(eq(courts.id, courtId)).limit(1);
+  if (!before) throw new DomainError("Court not found.", "NOT_FOUND", 404);
   const [row] = await db.update(courts).set(patch).where(eq(courts.id, courtId)).returning();
   if (!row) throw new DomainError("Court not found.", "NOT_FOUND", 404);
-  await audit(actorId, "court.update", "court", courtId, patch);
+
+  const changed = (keys: (keyof CourtPatch)[]) => Object.fromEntries(keys.filter((k) => before[k] !== patch[k]).map((k) => [k, { from: before[k], to: patch[k] }]));
+  const hourly = changed(["price1h", "price2h"]);
+  const monthly = changed(["monthlyPrice1m", "monthlyPrice3m", "monthlyPrice6m", "monthlyPrice12m"]);
+  const who = { court: before.name };
+  await audit(actorId, "court.update", "court", courtId, { ...who, ...patch });
+  if (Object.keys(hourly).length) await audit(actorId, "court.price_hourly_changed", "court", courtId, { ...who, ...hourly });
+  if (Object.keys(monthly).length) await audit(actorId, "court.price_monthly_changed", "court", courtId, { ...who, ...monthly });
+  if (before.status !== patch.status) await audit(actorId, "court.status_changed", "court", courtId, { ...who, from: before.status, to: patch.status });
   return row;
 }
 

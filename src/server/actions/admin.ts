@@ -8,7 +8,10 @@ import { z } from "zod";
 import { db } from "@/server/db";
 import { sessions, users } from "@/server/db/schema";
 import { DUMMY_HASH, hashPassword, verifyPassword } from "@/server/auth/password";
-import { assertAdmin } from "@/server/auth/guards";
+import { assertPermission, assertStaff } from "@/server/auth/guards";
+import { isStaffRole } from "@/lib/permissions";
+import { newPasswordSchema } from "@/lib/validation";
+import { audit } from "@/server/audit";
 import { createSession, destroySession, getSession } from "@/server/auth/session";
 import { refreshPublicPages } from "@/server/cache";
 import { DomainError } from "@/server/errors";
@@ -39,8 +42,13 @@ export async function login(_prev: ActionResult | null, formData: FormData): Pro
     const [user] = await db.select().from(users).where(eq(sql`lower(${users.email})`, input.email)).limit(1);
     // Always run the hash comparison so response time doesn't reveal whether the account exists.
     const valid = await verifyPassword(input.password, user?.passwordHash ?? DUMMY_HASH);
-    if (!user || !valid || user.role !== "ADMIN" || !user.isActive) throw new DomainError("That email and password don't match an administrator account.");
+    // The role comes from the account itself; only active ADMIN and SUPERVISOR accounts can sign in.
+    if (!user || !valid || !isStaffRole(user.role) || !user.isActive) {
+      await audit(null, "auth.login_failed", "user", user && isStaffRole(user.role) ? user.id : null, { email: input.email, ip, reason: user && valid && !user.isActive ? "account deactivated" : "invalid credentials" });
+      throw new DomainError("That email and password don't match an active staff account.");
+    }
     await createSession(user);
+    await audit(user.id, "auth.login", "user", user.id, { email: user.email, ip });
   } catch (err) {
     return toActionError(err);
   }
@@ -48,21 +56,23 @@ export async function login(_prev: ActionResult | null, formData: FormData): Pro
 }
 
 export async function logout() {
+  const session = await getSession();
   await destroySession();
+  if (session) await audit(session.user.id, "auth.logout", "user", session.user.id, { email: session.user.email });
   redirect("/admin/login");
 }
 
 const passwordSchema = z
   .object({
     current: z.string().min(1, "Enter your current password"),
-    password: z.string().min(12, "Use at least 12 characters").max(200),
+    password: newPasswordSchema,
     confirm: z.string(),
   })
   .refine((v) => v.password === v.confirm, { path: ["confirm"], message: "The passwords don't match" });
 
 export async function changePassword(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   try {
-    const admin = await assertAdmin();
+    const admin = await assertStaff();
     const input = passwordSchema.parse(formObject(formData));
     const [user] = await db.select().from(users).where(eq(users.id, admin.id)).limit(1);
     if (!user?.passwordHash || !(await verifyPassword(input.current, user.passwordHash))) {
@@ -72,6 +82,7 @@ export async function changePassword(_prev: ActionResult | null, formData: FormD
     // Sign out every other session.
     const session = await getSession();
     await db.delete(sessions).where(and(eq(sessions.userId, admin.id), session ? ne(sessions.id, session.sessionId) : undefined));
+    await audit(admin.id, "auth.password_changed", "user", admin.id, { email: admin.email });
     return { ok: true, message: "Password changed. Other sessions were signed out." };
   } catch (err) {
     return toActionError(err);
@@ -91,9 +102,11 @@ const cancelSchema = z.object({
 export async function cancelBookingAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   let target: string;
   try {
-    const admin = await assertAdmin();
+    // Cancelling is a staff task; cancelling *with a refund* needs the refund permission (administrators only).
+    const staff = await assertStaff();
     const input = cancelSchema.parse(formObject(formData));
-    const code = await cancelBooking(input.bookingId, { reason: input.reason, refund: input.refund === "yes", actorId: admin.id });
+    if (input.refund === "yes") await assertPermission("bookings.refund", "Only an administrator can refund a payment. Cancel without a refund, or ask an administrator.");
+    const code = await cancelBooking(input.bookingId, { reason: input.reason, refund: input.refund === "yes", actorId: staff.id });
     revalidatePath("/admin", "layout");
     refreshPublicPages();
     target = `/admin/bookings/${code}?notice=${input.refund === "yes" ? "cancelled-refunded" : "cancelled"}`;
@@ -108,7 +121,7 @@ const refundSchema = z.object({ bookingId: uuid, reason: z.string().trim().min(3
 export async function refundBookingAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   let target: string;
   try {
-    const admin = await assertAdmin();
+    const admin = await assertPermission("bookings.refund", "Only an administrator can refund a payment.");
     const input = refundSchema.parse(formObject(formData));
     const code = await refundCancelledBooking(input.bookingId, { reason: input.reason, actorId: admin.id });
     revalidatePath("/admin", "layout");
@@ -140,7 +153,7 @@ const blockSchema = z
 
 export async function createBlockAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   try {
-    const admin = await assertAdmin();
+    const staff = await assertPermission("courts.block");
     const input = blockSchema.parse(formObject(formData));
     const whole = input.wholeDay === "yes";
     await createBlock(
@@ -153,7 +166,7 @@ export async function createBlockAction(_prev: ActionResult | null, formData: Fo
         endMinute: whole ? null : input.endMinute,
         reason: input.reason,
       },
-      admin.id,
+      staff.id,
     );
     revalidatePath("/admin", "layout");
     refreshPublicPages();
@@ -164,9 +177,9 @@ export async function createBlockAction(_prev: ActionResult | null, formData: Fo
 }
 
 export async function deleteBlockAction(formData: FormData): Promise<void> {
-  const admin = await assertAdmin();
+  const staff = await assertPermission("courts.block");
   const id = uuid.parse(formData.get("blockId"));
-  await deleteBlock(id, admin.id);
+  await deleteBlock(id, staff.id);
   revalidatePath("/admin", "layout");
   refreshPublicPages();
 }
@@ -216,7 +229,7 @@ const courtSchema = z.object({
 
 export async function updateCourtAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   try {
-    const admin = await assertAdmin();
+    const admin = await assertPermission("courts.edit", "Only an administrator can change court prices, status or details.");
     const { courtId, ...patch } = courtSchema.parse(formObject(formData));
     await updateCourt(courtId, patch, admin.id);
     revalidatePath("/admin", "layout");
@@ -238,7 +251,7 @@ const hoursSchema = z
 
 export async function updateBookingHoursAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   try {
-    const admin = await assertAdmin();
+    const admin = await assertPermission("hours.edit", "Only an administrator can change the booking hours.");
     const input = hoursSchema.parse(formObject(formData));
     const { hours, outsideCodes } = await updateBookingHours(input, admin.id);
     revalidatePath("/admin", "layout");

@@ -4,11 +4,12 @@ import { cookies, headers } from "next/headers";
 import { cache } from "react";
 import { db } from "@/server/db";
 import { sessions, users, type User } from "@/server/db/schema";
+import { isStaffRole, type StaffRole } from "@/lib/permissions";
 import { SESSION_COOKIE, SESSION_TTL_SECONDS, signSessionToken, verifySessionToken } from "./jwt";
 
-export type SessionUser = Pick<User, "id" | "name" | "email">;
+export type SessionUser = Pick<User, "id" | "name" | "email"> & { role: StaffRole };
 
-/** The admin cookie is only sent to /admin pages (and their server actions). */
+/** The staff cookie is only sent to /admin pages (and their server actions). */
 const cookieBase = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
@@ -41,9 +42,17 @@ export async function destroySession() {
   jar.delete({ name: SESSION_COOKIE, path: cookieBase.path });
 }
 
+/** Signs a user out everywhere (deactivation, role change, password reset). Returns how many sessions ended. */
+export async function revokeUserSessions(userId: string, conn: Pick<typeof db, "delete"> = db): Promise<number> {
+  const removed = await conn.delete(sessions).where(eq(sessions.userId, userId)).returning({ id: sessions.id });
+  return removed.length;
+}
+
 /**
  * Authoritative session lookup: verifies the signed token AND that the session row still
- * exists, hasn't expired and belongs to an active ADMIN. Memoised per request.
+ * exists, hasn't expired and belongs to an active ADMIN or SUPERVISOR. The role always comes
+ * from the database row, never from the token, so a role change applies immediately. Memoised
+ * per request.
  */
 export const getSession = cache(async (): Promise<{ sessionId: string; user: SessionUser } | null> => {
   const claims = await verifySessionToken((await cookies()).get(SESSION_COOKIE)?.value);
@@ -56,6 +65,6 @@ export const getSession = cache(async (): Promise<{ sessionId: string; user: Ses
     .where(and(eq(sessions.id, claims.sid), gt(sessions.expiresAt, new Date())))
     .limit(1);
 
-  if (!row || !row.isActive || row.role !== "ADMIN") return null;
-  return { sessionId: row.sessionId, user: { id: row.id, name: row.name, email: row.email } };
+  if (!row || !row.isActive || !isStaffRole(row.role)) return null;
+  return { sessionId: row.sessionId, user: { id: row.id, name: row.name, email: row.email, role: row.role } };
 });

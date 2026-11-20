@@ -10,6 +10,9 @@ const cleanText = (max: number) =>
     .pipe(z.string().max(max));
 
 export const nameSchema = cleanText(120).pipe(z.string().min(2, "Enter your full name"));
+/** Staff password rule (the same one used for changing your own password). */
+export const MIN_PASSWORD_LENGTH = 12;
+export const newPasswordSchema = z.string().min(MIN_PASSWORD_LENGTH, `Use at least ${MIN_PASSWORD_LENGTH} characters`).max(200, "That's too long");
 export const emailSchema = z.string().trim().toLowerCase().max(180).pipe(z.email("Enter a valid email address"));
 
 /** Mobile number: 10 digits, optionally with +91 / 0 prefix and spaces or dashes. Stored as +91XXXXXXXXXX. */

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CATALOGUE_REVISION, COURTS, RATE_CARD, SPORTS } from "../../scripts/lib/catalogue";
-import { courtDisplayName, hasMonthlyPlans, lowestHourlyBySport, MONTHLY_TERMS, shortCourtName, tariffRows, type RateCardCourt } from "./pricing";
+import { courtDisplayName, hasMonthlyPlans, lowestHourlyBySport, MONTHLY_TERMS, monthlySavings, shortCourtName, tariffRows, type RateCardCourt } from "./pricing";
 
 const rupees = (paise: number | null) => (paise === null ? null : paise / 100);
 
@@ -120,5 +120,49 @@ describe("labels", () => {
 
   it("finds the lowest hourly price per sport", () => {
     expect(lowestHourlyBySport(catalogue)).toEqual({ badminton: 40_000, pickleball: 40_000, basketball: 70_000 });
+  });
+});
+
+describe("monthlySavings", () => {
+  const plan = (m1: number | null, m3: number | null, m6: number | null, m12: number | null) => ({
+    monthlyPrice1m: m1 === null ? null : m1 * 100,
+    monthlyPrice3m: m3 === null ? null : m3 * 100,
+    monthlyPrice6m: m6 === null ? null : m6 * 100,
+    monthlyPrice12m: m12 === null ? null : m12 * 100,
+  });
+  const saved = (m: ReturnType<typeof plan>) => Object.values(monthlySavings(m)).map(rupees);
+
+  it("is 1-month price × months minus the plan price (₹7,000 court)", () => {
+    expect(saved(plan(7_000, 19_500, 37_500, 72_000))).toEqual([null, 1_500, 4_500, 12_000]);
+  });
+
+  it("works for the ₹6,000 and ₹5,500 courts", () => {
+    expect(saved(plan(6_000, 16_500, 31_500, 60_000))).toEqual([null, 1_500, 4_500, 12_000]);
+    expect(saved(plan(5_500, 15_000, 27_500, 50_000))).toEqual([null, 1_500, 5_500, 16_000]);
+  });
+
+  it("matches every published catalogue row", () => {
+    for (const c of catalogue) {
+      const base = c.monthly.monthlyPrice1m!;
+      const s = monthlySavings(c.monthly);
+      expect(s.monthlyPrice1m).toBeNull();
+      expect(s.monthlyPrice3m).toBe(base * 3 - c.monthly.monthlyPrice3m!);
+      expect(s.monthlyPrice6m).toBe(base * 6 - c.monthly.monthlyPrice6m!);
+      expect(s.monthlyPrice12m).toBe(base * 12 - c.monthly.monthlyPrice12m!);
+    }
+  });
+
+  it("follows price changes made in the admin", () => {
+    expect(saved(plan(8_000, 20_000, 40_000, 80_000))).toEqual([null, 4_000, 8_000, 16_000]);
+  });
+
+  it("shows nothing for a missing plan price, and nothing at all without a 1-month baseline", () => {
+    expect(saved(plan(7_000, null, 37_500, null))).toEqual([null, null, 4_500, null]);
+    expect(saved(plan(null, 19_500, 37_500, 72_000))).toEqual([null, null, null, null]);
+    expect(saved(plan(0, 19_500, 37_500, 72_000))).toEqual([null, null, null, null]);
+  });
+
+  it("never reports a zero or negative saving", () => {
+    expect(saved(plan(7_000, 21_000, 43_000, 84_000))).toEqual([null, null, null, null]);
   });
 });

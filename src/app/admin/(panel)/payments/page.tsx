@@ -7,12 +7,14 @@ import { buttonClass } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/field";
 import { formatDateTime, formatMoney } from "@/lib/format";
 import { listPayments } from "@/server/queries/admin";
+import { requireStaff } from "@/server/auth/guards";
 
 export const metadata = { title: "Payments" };
 
 const one = (v: string | string[] | undefined) => (typeof v === "string" && v ? v : undefined);
 
 export default async function AdminPaymentsPage({ searchParams }: PageProps<"/admin/payments">) {
+  await requireStaff();
   const sp = await searchParams;
   const filters = { q: one(sp.q)?.slice(0, 100), status: one(sp.status), page: Number(one(sp.page) ?? 1) || 1 };
   const result = await listPayments(filters);

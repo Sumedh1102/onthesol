@@ -111,3 +111,26 @@ export function lowestHourlyBySport(courts: Pick<RateCardCourt, "status" | "spor
 export function hasMonthlyPlans(row: Pick<TariffRow, "monthly">): boolean {
   return MONTHLY_TERMS.some((t) => row.monthly[t.key] !== null);
 }
+
+export type MonthlySavings = Record<MonthlyKey, number | null>;
+
+/**
+ * What each monthly plan saves against paying the 1-month price every month, in paise:
+ * `1-month price × months − plan price`. The 1-month plan is the baseline, so it never has a
+ * saving; a plan whose price is missing, or that isn't cheaper than the baseline, is null (no
+ * saving is shown rather than a misleading one). Derived from the court's own prices, so it
+ * follows any change made in the admin.
+ */
+export function monthlySavings(monthly: MonthlyPrices): MonthlySavings {
+  const baseline = monthly.monthlyPrice1m;
+  const out: MonthlySavings = { monthlyPrice1m: null, monthlyPrice3m: null, monthlyPrice6m: null, monthlyPrice12m: null };
+  if (baseline === null || baseline <= 0) return out;
+  for (const term of MONTHLY_TERMS) {
+    if (term.months === 1) continue;
+    const planPrice = monthly[term.key];
+    if (planPrice === null || planPrice <= 0) continue;
+    const saving = baseline * term.months - planPrice;
+    out[term.key] = saving > 0 ? saving : null;
+  }
+  return out;
+}

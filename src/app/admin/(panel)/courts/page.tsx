@@ -6,14 +6,19 @@ import { buttonClass } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { BookingHoursForm } from "@/components/admin/court-forms";
 import { formatDate, formatMoney } from "@/lib/format";
+import { can } from "@/lib/permissions";
 import { addDays, isValidISODate } from "@/lib/time";
+import { describeHours } from "@/lib/booking/rules";
 import { getScheduleForDate, listCourtsAdmin } from "@/server/queries/admin";
 import { bookingWindow } from "@/server/services/bookings";
 import { getBookingSettings, hoursOf } from "@/server/settings";
+import { requireStaff } from "@/server/auth/guards";
 
 export const metadata = { title: "Courts" };
 
 export default async function AdminCourtsPage({ searchParams }: PageProps<"/admin/courts">) {
+  const staff = await requireStaff();
+  const canEdit = can(staff.role, "hours.edit");
   const { date: dateParam } = await searchParams;
   const settings = await getBookingSettings();
   const { today } = bookingWindow(settings);
@@ -22,7 +27,7 @@ export default async function AdminCourtsPage({ searchParams }: PageProps<"/admi
 
   return (
     <>
-      <PageHeader title="Courts" description="Every court with its status and rate card. Open a court to change its prices (hourly and monthly) or block slots for maintenance or events." />
+      <PageHeader title="Courts" description={canEdit ? "Every court with its status and rate card. Open a court to change its prices (hourly and monthly) or block slots for maintenance or events." : "Every court with its status and rate card. Open a court to view its schedule or block slots for maintenance or events."} />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {courts.map(({ court, sport, upcoming30, blocks }) => (
@@ -48,7 +53,7 @@ export default async function AdminCourtsPage({ searchParams }: PageProps<"/admi
 
       <Panel title="Online booking hours" className="mt-6">
         <div className="p-5">
-          <BookingHoursForm hours={hoursOf(settings)} />
+          {canEdit ? <BookingHoursForm hours={hoursOf(settings)} /> : <p className="text-sm text-muted">Online booking hours: {describeHours(hoursOf(settings))}. Only an administrator can change the booking hours.</p>}
         </div>
       </Panel>
 
